@@ -1,0 +1,45 @@
+SetDirectory[NotebookDirectory[]]
+ReadIn[i_] := 
+  ReadList["nuc" <> ToString[i] <> ".dat", Word, RecordLists -> True];
+data = Table[ReadIn[i], {i, 1, 15}];
+GatherCommon[in_] := 
+ DeleteDuplicates /@ (Flatten[#] & /@ 
+    Gather[in, Intersection[#1, #2] != {} &])
+NewGather[in_] := Module[{},
+  init = {};
+  For[i = 1, i < Length[in] + 1, i++, 
+   For[j = i, j < Length[in] + 1, j++, 
+    If[Length[Select[in[[i]], # == in[[j, 1]] &]] == 1, 
+     init = Append[init, {in[[i, 1]], in[[j, 1]]}], 0]]];
+  LoopGather[init]
+  ]
+LoopGather[in_] := Module[{},
+  init = in;
+  init2 = GatherCommon[init];
+  track = Max[Length /@ init];
+  track2 = Max[Length /@ init2];
+  n = 1;
+  While[track2 != track,
+   init = GatherCommon[init];
+   init2 = GatherCommon[init2];
+   track = Max[Length /@ init];
+   track2 = Max[Length /@ init2];
+   out = init2;
+   n++
+   ];
+  init2]
+NucSize[in_] := Module[{},
+  idx = Position[StringTake[#[[1]], 1] & /@ in, "t"] // Flatten;
+  dat = Table[
+     in[[idx[[i]] ;; idx[[i + 1]] - 1]], {i, 1, Length[idx] - 1}] // 
+    Append[#, in[[idx[[-1]] ;;]]] &;
+  newdat = 
+   Table[If[Length[dat[[i]]] == 1, {0}, 
+     Sort[Length /@ NewGather[Drop[#, {2}] & /@ dat[[i, 2 ;;]]]]], {i,
+      1, Length[dat]}]]
+nucSize = NucSize[#] & /@ data;
+NLmax = Transpose[{Table[
+       0.5*i, {i, 0, 
+        Length[nucSize[[1]]] - 
+         1}], #}] & /@ (nucSize[[;; , ;; , -1]]);
+Export["NLmax.txt", NLmax, "String"];
